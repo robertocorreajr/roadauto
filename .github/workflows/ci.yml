@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Baixa o código
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configura o Go
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true  # cacheia dependências para rodar mais rápido
+
+      # 3. Baixa dependências
+      - name: Download dependencies
+        run: go mod download
+
+      # 4. Verifica se compila
+      - name: Build
+        run: go build ./...
+
+      # 5. Roda testes com cobertura
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.out ./...
+
+      # 6. Análise estática de código
+      - name: Vet
+        run: go vet ./...
+
+      # 7. Linter (detecta problemas mais avançados)
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      # 8. Verifica se go.mod está limpo
+      - name: Tidy check
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
